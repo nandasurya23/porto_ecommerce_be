@@ -47,6 +47,7 @@ func RegisterCatalogRoutes(r *gin.RouterGroup, pool *pgxpool.Pool, cfg config.Co
 	admin.POST("/products", m.createProduct)
 	admin.PATCH("/products/:id", m.updateProduct)
 	admin.DELETE("/products/:id", m.archiveProduct)
+	admin.DELETE("/products/:id/permanent", m.deleteProductPermanent)
 	admin.POST("/products/:id/images", m.uploadProductImage)
 	admin.POST("/products/:id/variants", m.createVariant)
 	admin.PATCH("/variants/:id", m.updateVariant)
@@ -310,6 +311,55 @@ func (m *catalogModule) archiveProduct(c *gin.Context) {
 		return
 	}
 	response.Success(c, http.StatusOK, "Product archived successfully", gin.H{})
+}
+
+func (m *catalogModule) deleteProductPermanent(c *gin.Context) {
+	id, ok := mustUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	tx, err := m.pool.Begin(c.Request.Context())
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+	defer func() {
+		_ = tx.Rollback(c.Request.Context())
+	}()
+
+	if _, err := tx.Exec(c.Request.Context(), `
+		DELETE FROM cart_items
+		WHERE product_variant_id IN (SELECT id FROM product_variants WHERE product_id=$1)
+	`, id); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+
+	if _, err := tx.Exec(c.Request.Context(), `
+		DELETE FROM inventory_logs
+		WHERE product_variant_id IN (SELECT id FROM product_variants WHERE product_id=$1)
+	`, id); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+
+	ct, err := tx.Exec(c.Request.Context(), `DELETE FROM products WHERE id=$1`, id)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+	if ct.RowsAffected() == 0 {
+		response.Error(c, http.StatusNotFound, "Product not found", nil)
+		return
+	}
+
+	if err := tx.Commit(c.Request.Context()); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Product permanently deleted successfully", gin.H{})
 }
 
 func (m *catalogModule) uploadProductImage(c *gin.Context) {
