@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+uploads/
+bin/
+*.log
+*.tmp
+coverage.out
+node_modules/
+README.md
+docs/

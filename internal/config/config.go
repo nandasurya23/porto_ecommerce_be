@@ -20,6 +20,7 @@ type Config struct {
 	DBPassword      string
 	DBName          string
 	DBSSLMode       string
+	DatabaseURLRaw  string
 	JWTSecret       string
 	JWTExpiresIn    time.Duration
 	UploadDir       string
@@ -33,7 +34,7 @@ func Load() Config {
 	_ = loadDotEnv(".env")
 	return Config{
 		AppEnv:          getEnv("APP_ENV", "development"),
-		AppPort:         getEnv("APP_PORT", "8080"),
+		AppPort:         getEnv("PORT", getEnv("APP_PORT", "8080")),
 		AppBaseURL:      getEnv("APP_BASE_URL", "http://localhost:8080"),
 		FrontendURL:     getEnv("FRONTEND_URL", "http://localhost:3000"),
 		DBHost:          getEnv("DB_HOST", "localhost"),
@@ -42,6 +43,7 @@ func Load() Config {
 		DBPassword:      getEnv("DB_PASSWORD", "postgres"),
 		DBName:          getEnv("DB_NAME", "footwear_commerce"),
 		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
+		DatabaseURLRaw:  getEnv("DATABASE_URL", ""),
 		JWTSecret:       getEnv("JWT_SECRET", "change-me"),
 		JWTExpiresIn:    mustDuration(getEnv("JWT_EXPIRES_IN", "24h")),
 		UploadDir:       getEnv("UPLOAD_DIR", "./uploads"),
@@ -80,6 +82,9 @@ func loadDotEnv(path string) error {
 }
 
 func (c Config) DatabaseURL() string {
+	if strings.TrimSpace(c.DatabaseURLRaw) != "" {
+		return strings.TrimSpace(c.DatabaseURLRaw)
+	}
 	return "postgres://" + c.DBUser + ":" + c.DBPassword + "@" + c.DBHost + ":" + c.DBPort + "/" + c.DBName + "?sslmode=" + c.DBSSLMode
 }
 
