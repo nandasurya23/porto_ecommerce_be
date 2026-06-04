@@ -23,3 +23,9 @@ func TestOriginAllowedSupportsMultipleOrigins(t *testing.T) {
 	}
 }
 
+func TestOriginAllowedSupportsLocalhost(t *testing.T) {
+	allowed := parseAllowedOrigins("https://portofolio-ecommerce-footwear.vercel.app, http://localhost:3000")
+	if !originAllowed("http://localhost:3000", allowed) {
+		t.Fatal("expected localhost origin to be allowed")
+	}
+}
