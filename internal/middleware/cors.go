@@ -7,12 +7,12 @@ import (
 )
 
 func CORS(allowedOrigin string) gin.HandlerFunc {
-	allowedOrigin = strings.TrimSpace(allowedOrigin)
+	allowedOrigins := parseAllowedOrigins(allowedOrigin)
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin != "" && origin == allowedOrigin {
+		if origin != "" && originAllowed(origin, allowedOrigins) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			c.Writer.Header().Set("Vary", "Origin")
+			c.Writer.Header().Add("Vary", "Origin")
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With")
@@ -23,4 +23,29 @@ func CORS(allowedOrigin string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func parseAllowedOrigins(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if origin := normalizeOrigin(part); origin != "" {
+			out = append(out, origin)
+		}
+	}
+	return out
+}
+
+func originAllowed(origin string, allowedOrigins []string) bool {
+	normalizedOrigin := normalizeOrigin(origin)
+	for _, allowed := range allowedOrigins {
+		if normalizedOrigin == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeOrigin(origin string) string {
+	return strings.TrimRight(strings.TrimSpace(origin), "/")
 }

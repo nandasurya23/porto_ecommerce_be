@@ -25,7 +25,8 @@ type App struct {
 }
 
 func New(cfg config.Config, logger *slog.Logger) (*App, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// Remote databases can take longer on the first migration, so give startup more room.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	db, err := database.Open(ctx, cfg, logger)

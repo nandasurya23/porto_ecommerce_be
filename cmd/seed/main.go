@@ -22,7 +22,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// Seed/migration can be slow against a remote Postgres instance.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	db, err := database.Open(ctx, cfg, logger)
