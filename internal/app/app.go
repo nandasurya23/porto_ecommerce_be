@@ -75,7 +75,7 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 
 func (a *App) Run() error {
 	defer a.db.Close()
-	addr := fmt.Sprintf(":%s", a.cfg.AppPort)
+	addr := fmt.Sprintf("0.0.0.0:%s", a.cfg.AppPort)
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           a.router,
