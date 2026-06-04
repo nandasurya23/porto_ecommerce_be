@@ -3,10 +3,6 @@
 app = "porto-ecommerce-be"
 primary_region = "sin"
 
-[build]
-  [build.args]
-    GO_VERSION = "1.25.4"
-
 [env]
   PORT = "8080"
 

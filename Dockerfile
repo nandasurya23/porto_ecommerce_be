@@ -1,5 +1,4 @@
-ARG GO_VERSION=1.25.4
-FROM golang:${GO_VERSION}-bookworm AS builder
+FROM golang:1.25.4-bookworm AS builder
 
 WORKDIR /src
 
