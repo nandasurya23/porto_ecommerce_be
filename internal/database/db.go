@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -18,7 +19,11 @@ type DB struct {
 }
 
 func Open(ctx context.Context, cfg config.Config, logger *slog.Logger) (*DB, error) {
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL())
+	dsn, err := resolveDatabaseURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +33,16 @@ func Open(ctx context.Context, cfg config.Config, logger *slog.Logger) (*DB, err
 	}
 	logger.Info("database connected")
 	return &DB{Pool: pool}, nil
+}
+
+func resolveDatabaseURL(cfg config.Config) (string, error) {
+	if raw := strings.TrimSpace(cfg.DatabaseURLRaw); raw != "" {
+		return raw, nil
+	}
+	if strings.EqualFold(strings.TrimSpace(cfg.AppEnv), "production") {
+		return "", errors.New("DATABASE_URL is required in production")
+	}
+	return "postgres://" + cfg.DBUser + ":" + cfg.DBPassword + "@" + cfg.DBHost + ":" + cfg.DBPort + "/" + cfg.DBName + "?sslmode=" + cfg.DBSSLMode, nil
 }
 
 func (db *DB) Close() {
