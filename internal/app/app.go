@@ -32,6 +32,7 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("startup stage 2/5 database connected")
 	if err := ensureDirs(cfg); err != nil {
 		db.Close()
 		return nil, err
@@ -40,6 +41,7 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 		db.Close()
 		return nil, err
 	}
+	logger.Info("startup stage 3/5 migrations completed")
 	if cfg.ResetDemoData {
 		if strings.EqualFold(cfg.AppEnv, "production") {
 			db.Close()
@@ -50,9 +52,11 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 			return nil, err
 		}
 	}
-	if err := db.SeedDemoData(ctx, cfg, logger); err != nil {
-		db.Close()
-		return nil, err
+	if !strings.EqualFold(cfg.AppEnv, "production") {
+		if err := db.SeedDemoData(ctx, cfg, logger); err != nil {
+			db.Close()
+			return nil, err
+		}
 	}
 
 	router := gin.New()
@@ -69,6 +73,7 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 	})
 
 	router.Static("/uploads", cfg.UploadDir)
+	logger.Info("startup stage 4/5 routes initialized")
 
 	return &App{cfg: cfg, logger: logger, db: db, router: router}, nil
 }

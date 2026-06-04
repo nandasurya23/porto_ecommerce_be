@@ -13,6 +13,7 @@ func main() {
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
 	slog.SetDefault(logger)
+	logger.Info("startup stage 1/5 config loaded", "app_env", cfg.AppEnv, "app_port", cfg.AppPort)
 
 	server, err := app.New(cfg, logger)
 	if err != nil {
